@@ -18,6 +18,29 @@ from itertools import combinations
 from datetime import datetime
 
 
+param = {
+    'bagging_freq': 5,
+    'bagging_fraction': 0.4,
+    'boost_from_average':'false',
+    'boost': 'gbdt',
+    'feature_fraction': 0.15,
+    'learning_rate': 0.01,
+    'metric':'auc',
+    'num_leaves': 18,
+    'num_threads': 8,
+    'max_depth':12,
+    'tree_learner': 'serial',
+    'objective': 'binary', 
+    'verbosity': 1
+}
+
+def gini(y_true, y_score):
+    return roc_auc_score(y_true, y_score)*2 - 1
+
+def lgb_gini(y_pred, dataset_true):
+    y_true = dataset_true.get_label()
+    return 'gini', gini(y_true, y_pred), True
+
 folds = StratifiedKFold(n_splits=10, shuffle=False, random_state=44000)
 
 oof = np.zeros(len(train_fe)) # lưu lại các lần predict trên tập split 1-10
