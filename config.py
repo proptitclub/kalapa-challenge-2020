@@ -31,7 +31,7 @@ list_jobs = {
 
 missing_value = "missing"
 
-list_drop_field_train = ["Field_3", "Field_4", "Field_13", "Field_14", "Field_57"]
+list_drop_field_train = ["Field_3", "Field_4", "Field_13", "Field_14", "Field_35", "Field_57"]
 
 list_drop_field_test = []
 
