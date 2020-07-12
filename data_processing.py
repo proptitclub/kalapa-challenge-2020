@@ -48,9 +48,17 @@ def get_city(address):
     return c.missing_value         
 
 def norm_dateTime(date):
+    date = str(date)
     if date != c.missing_value:
         if date.find(":") != -1:
             date = date[:10]
+        
+        elif date.find("/") != -1:
+            date = date.split("/")[-1]+"-"+date.split("/")[0]+"-"+date.split("/")[1]
+            
+        elif len(date) == 8:
+            date = date[:4]+"-"+date[4:6]+"-"+date[6:]
+        
         return date
     return c.missing_value
 
@@ -67,6 +75,19 @@ def get_age(time):
             return "HT"
     return c.missing_value
 
+def norm_field_47(x):
+    if x == "Zero":
+        return 0
+    elif x == "One":
+        return 1
+    elif x == "Two":
+        return 2
+    elif x == "Three":
+        return 3
+    elif x == "Four":
+        return 4
+    
+    return c.missing_value
 
 def preprocess_train_data(data_train_path, output_path):
     df_train = pd.read_csv(data_train_path)
@@ -89,6 +110,9 @@ def preprocess_train_data(data_train_path, output_path):
 
     # get age
     df_train["ngaySinh"] = df_train["ngaySinh"].apply(lambda x: get_age(x))
+
+    # norm field 47
+    df_train["Field_47"] = df_train["Field_47"].apply(lambda x: norm_field_47(x))    
 
     # drop fields
     for field in c.list_drop_field_train:
@@ -116,9 +140,12 @@ def preprocess_test_data(data_test_path, output_path):
     # norm date time
     for field_name in c.list_date_field:
         df_test[field_name] = df_test[field_name].apply(lambda x: norm_dateTime(x))
-
+        
     # get age
     df_test["ngaySinh"] = df_test["ngaySinh"].apply(lambda x: get_age(x))
+
+    # norm field 47
+    df_test["Field_47"] = df_test["Field_47"].apply(lambda x: norm_field_47(x))  
 
     # drop fields
     for field in c.list_drop_field_test:
