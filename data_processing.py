@@ -70,10 +70,14 @@ def norm_dateTime(date):
             print(date)
             return c.missing_value
         
-        if int(date.split("-")[1]) > 12 or int(date.split("-")[-1]) >= 31:
+        if int(date.split("-")[1]) > 12 or int(date.split("-")[-1]) > 31:
             date = c.missing_value 
+        elif int(date.split("-")[-1]) == 31:
+            date = date.replace("31","30")
         if date[5:] == "02-29" or date[5:] == "02-30" or date[5:] == "02-31" :
-            date = "2019-02-28"
+            date = date.replace("02-29","02-28")
+            date = date.replace("02-30","02-28")
+            date = date.replace("02-31","02-28")
 
 
         return date
@@ -222,5 +226,5 @@ def preprocess_test_data(data_test_path, output_path):
 
 
 if __name__ == "__main__":
-    preprocess_train_data('data/raw/train.csv','data/normed/train.csv' )
+    # preprocess_train_data('data/raw/train.csv','data/normed/train.csv' )
     # preprocess_test_data('data/raw/test.csv','data/normed/test.csv')
