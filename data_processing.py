@@ -3,6 +3,8 @@ import pandas as pd
 import re 
 import numpy as np 
 import config as c
+from multiprocessing import Pool
+
 
 def drop_fields(df_train):
     for name in c.list_drop_field:
@@ -52,13 +54,28 @@ def norm_dateTime(date):
     if date != c.missing_value:
         if date.find(":") != -1:
             date = date[:10]
-        
         elif date.find("/") != -1:
             date = date.split("/")[-1]+"-"+date.split("/")[0]+"-"+date.split("/")[1]
-            
+        elif date.find(".") != -1:
+            date = date.split(".")[0]
+            date = date[:4]+"-"+date[4:6]+"-"+date[6:]
         elif len(date) == 8:
             date = date[:4]+"-"+date[4:6]+"-"+date[6:]
+        elif date.find("-") != -1 and len(date) <= 10:
+            date = date
+        elif date.find("TS") != -1:
+            date = date.split(" ")[0]
+            date = date[:4]+"-"+date[4:6]+"-"+date[6:] 
+        else:
+            print(date)
+            return c.missing_value
         
+        if int(date.split("-")[1]) > 12 or int(date.split("-")[-1]) >= 31:
+            date = c.missing_value 
+        if date[5:] == "02-29" or date[5:] == "02-30" or date[5:] == "02-31" :
+            date = "2019-02-28"
+
+
         return date
     return c.missing_value
 
@@ -89,6 +106,26 @@ def norm_field_47(x):
     
     return c.missing_value
 
+def get_sub_date(df_train, startDateField, endDateField, outputFieldName):
+    for i in range(1,len(df_train[startDateField])):
+        startDate = df_train[startDateField][i]
+        endDate = df_train[endDateField][i]
+        if startDate == c.missing_value or endDate == c.missing_value:
+            df_train[outputFieldName][i] = c.missing_value
+        else:
+            sub = pd.to_datetime(endDate) - pd.to_datetime(startDate)
+            df_train[outputFieldName][i] = str(sub).split("days")[0]
+
+def get_now_sub_date(df_train, startDateField, outputFieldName):
+    for i in range(1,len(df_train[startDateField])):
+        startDate = df_train[startDateField][i]
+        endDate = "2020-07-14"
+        if startDate == c.missing_value:
+            df_train[outputFieldName][i] = c.missing_value
+        else:
+            sub = pd.to_datetime(endDate) - pd.to_datetime(startDate)
+            df_train[outputFieldName][i] = str(sub).split("days")[0]
+
 def preprocess_train_data(data_train_path, output_path):
     df_train = pd.read_csv(data_train_path)
 
@@ -107,12 +144,26 @@ def preprocess_train_data(data_train_path, output_path):
     # norm date time
     for field_name in c.list_date_field:
         df_train[field_name] = df_train[field_name].apply(lambda x: norm_dateTime(x))
-
     # get age
     df_train["ngaySinh"] = df_train["ngaySinh"].apply(lambda x: get_age(x))
 
     # norm field 47
     df_train["Field_47"] = df_train["Field_47"].apply(lambda x: norm_field_47(x))    
+    
+    # sub date field
+    for i in range(0,len(c.list_date_field_alone)):
+        output_field_name = "now-"+str(c.list_date_field_alone[i])
+        df_train[output_field_name] = ""
+        get_now_sub_date(df_train, c.list_date_field_alone[i], output_field_name)
+        c.list_drop_field_train.append(c.list_date_field_alone[i])
+
+    for i in range(0,len(c.list_date_field_start)):
+        output_field_name = str(c.list_date_field_end[i])+"-"+str(c.list_date_field_start[i])
+        df_train[output_field_name] = ""
+        get_sub_date(df_train, c.list_date_field_start[i], c.list_date_field_end[i], output_field_name)
+
+        c.list_drop_field_train.append(c.list_date_field_end[i])
+        c.list_drop_field_train.append(c.list_date_field_start[i])
 
     # drop fields
     for field in c.list_drop_field_train:
@@ -132,7 +183,7 @@ def preprocess_test_data(data_test_path, output_path):
     # split address to 2 fields (province and city)
     df_test["province"] = df_test["diaChi"].apply(lambda x: get_province(x)) 
     df_test["city"] = df_test["diaChi"].apply(lambda x: get_city(x))
-    # df_test['province'] = df_test['province'].apply(lambda x: remove_accent(x))
+    df_test['province'] = df_test['province'].apply(lambda x: remove_accent(x))
 
     # norm jobs
     df_test['maCv'] = df_test['maCv'].apply(lambda x: norm_job(x))
@@ -147,6 +198,21 @@ def preprocess_test_data(data_test_path, output_path):
     # norm field 47
     df_test["Field_47"] = df_test["Field_47"].apply(lambda x: norm_field_47(x))  
 
+    # sub date field
+    for i in range(0,len(c.list_date_field_alone)):
+        output_field_name = "now-"+str(c.list_date_field_alone[i])
+        df_test[output_field_name] = ""
+        get_now_sub_date(df_test, c.list_date_field_alone[i], output_field_name)
+        c.list_drop_field_test.append(c.list_date_field_alone[i])
+
+    for i in range(0,len(c.list_date_field_start)):
+        output_field_name = str(c.list_date_field_end[i])+"-"+str(c.list_date_field_start[i])
+        df_test[output_field_name] = ""
+        get_sub_date(df_test, c.list_date_field_start[i], c.list_date_field_end[i], output_field_name)
+
+        c.list_drop_field_test.append(c.list_date_field_end[i])
+        c.list_drop_field_test.append(c.list_date_field_start[i])
+
     # drop fields
     for field in c.list_drop_field_test:
         df_test.drop(field, axis=1, inplace=True)
@@ -157,4 +223,4 @@ def preprocess_test_data(data_test_path, output_path):
 
 if __name__ == "__main__":
     preprocess_train_data('data/raw/train.csv','data/normed/train.csv' )
-    preprocess_test_data('data/raw/test.csv','data/normed/test.csv')
+    # preprocess_test_data('data/raw/test.csv','data/normed/test.csv')
