@@ -16,11 +16,14 @@ def norm_job(job_des):
         return c.missing_value
     else:
         job_des = job_des.lower() 
-        job_des.replace("cn", "công nhân ")
-        job_des.replace("nv", "nhân viên ")
+        job_des = job_des.replace("cn", "cong nhan")
+        job_des = job_des.replace("nv", "nhan vien")
         for regex, replace in c.list_jobs.items():
             if job_des.find(regex) != -1:
                 return replace
+        # f = open("listCv.txt", "a")
+        # f.write(job_des+"\n")
+        # f.close()
         return "exception"
 
 def remove_accent(text):
@@ -110,6 +113,31 @@ def norm_field_47(x):
     
     return c.missing_value
 
+def norm_field_46(x):
+    x = x.lower()
+    if x.find("cti") != -1 or x.find("cong ti") != -1:
+        return "CTY"
+    elif x.find("ho gia dinh") != -1 or x.find("hgd") != -1 or x.find("ho gd") != -1:
+        return "HGD"
+    elif x.find("truong") != -1 or x.find("giao duc") != -1 :
+        return "TH"
+    elif x.find("dai li") != -1 or x.find("dl") != -1:
+        return "DL"
+    elif x.find("benh vien") != -1 or x.find("bv") != -1 or x.find("i te") != -1:
+        return "BV" 
+    elif x.find("trung tam dich vu") != -1 or x.find("viec lam") != -1 or x.find("that nghiep") != -1:
+        return "TT" 
+    elif x.find("dac biet kho khan") != -1 or x.find("ho ngheo") != -1 or x.find("ktkk") != -1 or x.find("nguoi ngheo") != -1 or x.find("can ngheo") != -1:
+        return "HN" 
+    elif x.find("nhan dan") != -1 or x.find("ubnd") != -1 or x.find("canbo") != -1 or x.find("sinh song") != -1 or x.find("quanli") != -1:
+        return "ND"
+    elif x.find("ngan hang") != -1 or x.find("tai chinh") != -1:
+        return "TC"  
+    elif x != c.missing_value:
+        f = open("list_46.txt", "a")
+        f.write(x+"\n")
+        f.close()
+
 def get_sub_date(df_train, startDateField, endDateField, outputFieldName):
     for i in range(1,len(df_train[startDateField])):
         startDate = df_train[startDateField][i]
@@ -136,45 +164,55 @@ def preprocess_train_data(data_train_path, output_path):
     # fill nan value with "missing"
     for col in df_train.columns:
         df_train[col].fillna(c.missing_value, inplace=True)
+    
+    df_train['Field_46'] = df_train['Field_46'].apply(lambda x: remove_accent(x))
+    df_train["Field_46"] = df_train["Field_46"].apply(lambda x: norm_field_46(x))
 
-    # split address to 2 fields (province and city)
-    df_train["province"] = df_train["diaChi"].apply(lambda x: get_province(x)) 
-    df_train["city"] = df_train["diaChi"].apply(lambda x: get_city(x))
+    # # split address to 2 fields (province and city)
+    # df_train["province"] = df_train["diaChi"].apply(lambda x: get_province(x)) 
+    # df_train["city"] = df_train["diaChi"].apply(lambda x: get_city(x))
+    # df_train['city'] = df_train['city'].apply(lambda x: remove_accent(x))
     # df_train['province'] = df_train['province'].apply(lambda x: remove_accent(x))
 
-    # norm jobs
-    df_train['maCv'] = df_train['maCv'].apply(lambda x: norm_job(x))
+    # df_train["province2"] = df_train["Field_49"].apply(lambda x: get_province(x)) 
+    # df_train["city2"] = df_train["Field_49"].apply(lambda x: get_city(x))
+    # df_train['city2'] = df_train['city2'].apply(lambda x: remove_accent(x))
+    # df_train['province2'] = df_train['province2'].apply(lambda x: remove_accent(x))
 
-    # norm date time
-    for field_name in c.list_date_field:
-        df_train[field_name] = df_train[field_name].apply(lambda x: norm_dateTime(x))
-    # get age
-    df_train["ngaySinh"] = df_train["ngaySinh"].apply(lambda x: get_age(x))
+    # # norm jobs
+    # df_train['maCv'] = df_train['maCv'].apply(lambda x: remove_accent(x))
+    # df_train['maCv'] = df_train['maCv'].apply(lambda x: norm_job(x))
 
-    # norm field 47
-    df_train["Field_47"] = df_train["Field_47"].apply(lambda x: norm_field_47(x))    
+    # # norm date time
+    # for field_name in c.list_date_field:
+    #     df_train[field_name] = df_train[field_name].apply(lambda x: norm_dateTime(x))
+    # # get age
+    # df_train["ngaySinh"] = df_train["ngaySinh"].apply(lambda x: get_age(x))
+
+    # # norm field 47
+    # df_train["Field_47"] = df_train["Field_47"].apply(lambda x: norm_field_47(x))    
     
-    # sub date field
-    for i in range(0,len(c.list_date_field_alone)):
-        output_field_name = "now-"+str(c.list_date_field_alone[i])
-        df_train[output_field_name] = ""
-        get_now_sub_date(df_train, c.list_date_field_alone[i], output_field_name)
-        c.list_drop_field_train.append(c.list_date_field_alone[i])
+    # # sub date field
+    # for i in range(0,len(c.list_date_field_alone)):
+    #     output_field_name = "now-"+str(c.list_date_field_alone[i])
+    #     df_train[output_field_name] = ""
+    #     get_now_sub_date(df_train, c.list_date_field_alone[i], output_field_name)
+    #     c.list_drop_field_train.append(c.list_date_field_alone[i])
 
-    for i in range(0,len(c.list_date_field_start)):
-        output_field_name = str(c.list_date_field_end[i])+"-"+str(c.list_date_field_start[i])
-        df_train[output_field_name] = ""
-        get_sub_date(df_train, c.list_date_field_start[i], c.list_date_field_end[i], output_field_name)
+    # for i in range(0,len(c.list_date_field_start)):
+    #     output_field_name = str(c.list_date_field_end[i])+"-"+str(c.list_date_field_start[i])
+    #     df_train[output_field_name] = ""
+    #     get_sub_date(df_train, c.list_date_field_start[i], c.list_date_field_end[i], output_field_name)
 
-        c.list_drop_field_train.append(c.list_date_field_end[i])
-        c.list_drop_field_train.append(c.list_date_field_start[i])
+    #     c.list_drop_field_train.append(c.list_date_field_end[i])
+    #     c.list_drop_field_train.append(c.list_date_field_start[i])
 
-    # drop fields
-    for field in c.list_drop_field_train:
-        df_train.drop(field, axis=1, inplace=True)
+    # # drop fields
+    # for field in c.list_drop_field_train:
+    #     df_train.drop(field, axis=1, inplace=True)
 
-    # save csv
-    df_train.to_csv(output_path, header=True, index=False)
+    # # save csv
+    # df_train.to_csv(output_path, header=True, index=False)
 
 
 def preprocess_test_data(data_test_path, output_path):
@@ -189,7 +227,13 @@ def preprocess_test_data(data_test_path, output_path):
     df_test["city"] = df_test["diaChi"].apply(lambda x: get_city(x))
     df_test['province'] = df_test['province'].apply(lambda x: remove_accent(x))
 
+    df_test["province2"] = df_test["Field_49"].apply(lambda x: get_province(x)) 
+    df_test["city2"] = df_test["Field_49"].apply(lambda x: get_city(x))
+    df_test['city2'] = df_test['city2'].apply(lambda x: remove_accent(x))
+    df_test['province2'] = df_test['province2'].apply(lambda x: remove_accent(x))
+
     # norm jobs
+    df_test['maCv'] = df_test['maCv'].apply(lambda x: remove_accent(x))
     df_test['maCv'] = df_test['maCv'].apply(lambda x: norm_job(x))
 
     # norm date time
@@ -226,5 +270,5 @@ def preprocess_test_data(data_test_path, output_path):
 
 
 if __name__ == "__main__":
-    # preprocess_train_data('data/raw/train.csv','data/normed/train.csv' )
+    preprocess_train_data('data/raw/train.csv','data/normed/train.csv' )
     # preprocess_test_data('data/raw/test.csv','data/normed/test.csv')
